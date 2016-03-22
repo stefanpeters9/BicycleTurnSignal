@@ -19,3 +19,20 @@ DDRB  EQU $03
 PORTM EQU $0250
 DDRM  EQU $0252
 ;**************
+
+;**************INITIALIZATION*********
+
+		LDAA #$FF			   ; Initialize port A for output
+		STAA DDRA							  
+		
+;****************MAIN LOOP*************
+
+TOP LDAA #$00
+	STAA PORTA
+	; IF LEFT BUTTON IS PRESSED JSR TO LEFT TURN FUNCTION
+	  	 	  ; PB4 -> PB7 FLASH (ON 500 ms / OFF 500 ms)
+	; IF RIGHT BUTTON IS PRESSED JSR TO RIGHT TURN FUNCTION
+	  	 	  ; PB0 -> PB3 FLASH (ON 500 ms / off 500)
+	; BRAKE LIGHT FUNCTION SHOULD BE AN INTERRUPT
+	  		  ; PB0 -> PB7 ON UNTIL LEVER IS RELEASED
+	BRA TOP
