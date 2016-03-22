@@ -20,6 +20,11 @@ PORTM EQU $0250
 DDRM  EQU $0252
 ;**************
 
+;****************VARIABLES*************
+
+RIGHT ds 1
+LEFT ds 1
+ONOFF ds 1
 ;**************INITIALIZATION*********
 
 		LDAA #$FF			   ; Initialize port A for output
@@ -27,12 +32,19 @@ DDRM  EQU $0252
 		
 ;****************MAIN LOOP*************
 
-TOP LDAA #$00
-	STAA PORTA
-	; IF LEFT BUTTON IS PRESSED JSR TO LEFT TURN FUNCTION
-	  	 	  ; PB4 -> PB7 FLASH (ON 500 ms / OFF 500 ms)
-	; IF RIGHT BUTTON IS PRESSED JSR TO RIGHT TURN FUNCTION
-	  	 	  ; PB0 -> PB3 FLASH (ON 500 ms / off 500)
-	; BRAKE LIGHT FUNCTION SHOULD BE AN INTERRUPT
-	  		  ; PB0 -> PB7 ON UNTIL LEVER IS RELEASED
+	;START TIMER
+	;ONOFF VARIABLE 
+	; VARIABLES RIGHT LEFT 
+TOP ;IF (BRAKE=1) LEFT=1 RIGHT=1
+	;ELSE IF (TIMER >= 500ms)
+		  AND IF(LEFTBUTTON=1 AND ONOFF=1)
+		  	  LEFT=1
+			  IF(RIGHTBUTTON=1 AND ONOFF=1)
+			  RIGHT=1
+			  IF (ONOFF = 0)
+		 	  LEFT=0
+		 	  RIGHT=0
+		  OLDTIMER=TIMER
+          TOGGLE ONOFF	
+		     
 	BRA TOP
