@@ -20,31 +20,142 @@ PORTM EQU $0250
 DDRM  EQU $0252
 ;**************
 
+;*** ADC Unit *** 
+ATDCTL2	EQU $122
+ATDCTL4 EQU $124
+ATDCTL5	EQU $125
+ATDSTAT0 EQU $126
+ATD1DR1H EQU $132
+ATD1DR1L EQU $133
+;****************
+
 ;****************VARIABLES*************
+		ORG $1000
 
 RIGHT ds 1
 LEFT ds 1
 ONOFF ds 1
-;**************INITIALIZATION*********
 
+;**************INITIALIZATION*********
+		ORG $400
+
+		LDS #$4000
+		
 		LDAA #$FF			   ; Initialize port A for output
-		STAA DDRA							  
+		STAA DDRA
+		LDAA #$01
+		STAA ONOFF
+		
+		LDAA #$90
+		STAA TSCR1
+		LDAA #$07
+		STAA TSCR2
+		LDAA #$10
+		STAA TIOS
+		LDAA #$01
+		STAA TCTL1
+		
+		LDAA #$C0			   ; Initialize ADTCTL2
+		STAA ATDCTL2 
+		JSR Delay1MS 		   ; You should have one of these, so use it.
+		LDAA #$E5			   ; Initialize ADTCTL4
+		STAA ATDCTL4
+		
+		LDD TSCNT
+		ADDD #$7A12
+		STD TC4
 		
 ;****************MAIN LOOP*************
 
 	;START TIMER
 	;ONOFF VARIABLE 
 	; VARIABLES RIGHT LEFT 
-TOP ;IF (BRAKE=1) LEFT=1 RIGHT=1
+;TOP ;IF (BRAKE=1) LEFT=1 RIGHT=1
 	;ELSE IF (TIMER >= 500ms)
-		  AND IF(LEFTBUTTON=1 AND ONOFF=1)
-		  	  LEFT=1
-			  IF(RIGHTBUTTON=1 AND ONOFF=1)
-			  RIGHT=1
-			  IF (ONOFF = 0)
-		 	  LEFT=0
-		 	  RIGHT=0
-		  OLDTIMER=TIMER
-          TOGGLE ONOFF	
+	;	  AND IF(LEFTBUTTON=1 AND ONOFF=1)
+	;	  	  LEFT=1
+	;		  IF(RIGHTBUTTON=1 AND ONOFF=1)
+	;		  RIGHT=1
+	;		  IF (ONOFF = 0)
+	;	 	  LEFT=0
+	;	 	  RIGHT=0
+	;	  OLDTIMER=TIMER
+    ;      TOGGLE ONOFF	
 		     
-	BRA TOP
+	;BRA TOP
+
+LOOP LDAA #$80 			   ; Initiate sample (#$81 FOR TEMP SENSOR)
+	 STAA ATDCTL5
+	 BRCLR ATDSTAT0,%10000000,*		  ; Spin on ADTSTAT0 bit 7 to detect conversion complete
+	 LDAA ATD1DR1L	  	   ; Read eight bit A/D data from ATD1DR1L
+	 CMPA #$05
+	 BLO OFF1
+	 CMPA #$54
+	 BLO LFT
+	 CMPA #$A8
+	 BLO STOP
+	 BRA RGHT
+	 
+OFF1 LDAA #$00
+	 STAA PORTA
+	 STAA LEFT
+	 STAA RIGHT
+	 BRA LOOP
+	 
+LFT  LDAA #$01
+	 STAA LEFT
+	 LDAA #$00
+	 STAA RIGHT
+	 BRA CHCK
+	 
+STOP LDAA #$FF
+	 STAA PORTA
+	 BRA LOOP
+	 
+RGHT LDAA #$01
+	 STAA RIGHT
+	 LDAA #$00
+	 STAA LEFT
+	 BRA CHCK
+	 
+CHCK LDAA TFLG1
+	 CMPA #$10
+	 BEQ CHG
+	 BRA LOOP
+	 
+RESET LDD TSCNT
+	  ADDD #$7A12
+	  STD TC4
+	  BRA LOOP
+	 
+CHG	 LDAA ONOFF
+	 CMPA #$01
+	 BEQ ON
+	 BNE OFF2
+
+ON	 LDAA #$00
+	 STAA ONOFF
+	 LDAA RIGHT
+	 CMPA #$01
+	 BNE SKP1
+	 LDAA #$0F
+	 STAA PORTA
+	 BRA RESET
+SKP1 LDAA LEFT
+	 CMPA #$01
+	 BNE RESET
+	 LDAA #$F0
+	 STAA PORTA
+	 BRA RESET
+	  
+OFF2  LDAA #$01
+	  STAA ONOFF
+	  LDAA #$00
+	  STAA PORTA
+	  BRA RESET
+	 
+Delay1MS:	LDX #!700	 
+top:		DEX 		 
+			CPX #$0001	 
+			BNE top	 	 
+			RTS 
